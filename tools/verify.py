@@ -26,12 +26,15 @@ with tempfile.TemporaryDirectory(prefix='oht-') as scratch:
   for kind, target in [('client-header', 'pointer-protocol.h'), ('private-code', 'pointer-protocol.c')]:
     subprocess.run(['wayland-scanner', kind, str(source / 'wlr-virtual-pointer-unstable-v1.xml'), str(scratch / target)], check=True)
   subprocess.run(['cc', str(source / 'pointer.c'), str(scratch / 'pointer-protocol.c'), '-I', str(scratch), '-lwayland-client', '-o', str(scratch / 'pointer')], check=True)
+  unconfigured = scratch / 'unconfigured'
   config = scratch / 'hyprland.lua'
   config.write_text('''
 hl.monitor({ output = "", mode = "1280x800@60", position = "0x0", scale = 1 })
 hl.config({ general = { gaps_in = 8, gaps_out = 8, border_size = 2, resize_on_border = true }, animations = { enabled = false }, input = { follow_mouse = 0 }, misc = { disable_hyprland_logo = true, disable_splash_rendering = true } })
 hl.window_rule({ name = "test-float", match = { class = ".*" }, float = true, size = { 600, 400 }, center = true })
-if hl.plugin and hl.plugin.hyprbars then
+local unconfigured = io.open("UNCONFIGURED", "r")
+if unconfigured then unconfigured:close() end
+if hl.plugin and hl.plugin.hyprbars and not unconfigured then
   hl.config({ plugin = { hyprbars = {
     enabled = true, bar_height = 30, bar_color = "rgb(24283b)", bar_color_inactive = "rgb(1a1b26)", col = { text = "rgb(c0caf5)" },
     button_rounding = 4, bar_text_align = "left", bar_text_font = "Sans", bar_text_size = 12, bar_part_of_window = true,
@@ -39,7 +42,7 @@ if hl.plugin and hl.plugin.hyprbars then
   } } })
   hl.plugin.hyprbars.add_button({ bg_color = "rgb(f7768e)", fg_color = "rgb(1a1b26)", size = 18, icon = "×", action = [[hyprctl dispatch 'hl.dsp.window.close({ window = "address:%WINDOW%" })']] })
 end
-''')
+'''.replace('UNCONFIGURED', str(unconfigured)))
   parent_instances = json.loads(subprocess.check_output(['hyprctl', 'instances', '-j'], text=True))
   if len(parent_instances) != 1:
     raise RuntimeError('Verification expects exactly one parent compositor')
@@ -127,6 +130,22 @@ end
       time.sleep(.15)
       assert not json.loads(ctl('plugin', 'list', '-j'))
     print('PASS: repeated load/reload/unload, interleaved with the XP fork', flush=True)
+
+    # Hyprland keeps a plugin loaded after the config stops asking for it, and
+    # puts its options back to their defaults, so an unconfigured bar must
+    # reserve no space.
+    unconfigured.touch()
+    ctl('plugin', 'load', str(args.library))
+    ctl('reload')
+    ctl('dispatch', 'hl.dsp.window.fullscreen({ mode = "maximized", action = "set" })')
+    time.sleep(.3)
+    assert client()['at'][1] <= 12, client()
+    capture('unconfigured-no-titlebar')
+    ctl('dispatch', 'hl.dsp.window.fullscreen({ mode = "maximized", action = "unset" })')
+    ctl('plugin', 'unload', str(args.library))
+    unconfigured.unlink()
+    time.sleep(.15)
+    print('PASS: a loaded but unconfigured plugin draws no titlebars', flush=True)
 
     ctl('plugin', 'load', str(args.library))
     ctl('reload')

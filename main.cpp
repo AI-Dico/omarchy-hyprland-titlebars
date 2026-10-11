@@ -243,7 +243,7 @@ static PLUGIN_DESCRIPTION_INFO initializeOmarchyFloating(HANDLE handle) {
       makeShared<Config::Values::CIntValue>("plugin:hyprbars:button_border_size", "Width of the button border", 0);
   g_pOmarchyFloatingGlobalState->config.buttonBorderColor =
       makeShared<Config::Values::CColorValue>("plugin:hyprbars:button_border_color", "Color of the button border", 0x00000000);
-  g_pOmarchyFloatingGlobalState->config.enabled = makeShared<Config::Values::CBoolValue>("plugin:hyprbars:enabled", "Whether bars are enabled", true);
+  g_pOmarchyFloatingGlobalState->config.enabled = makeShared<Config::Values::CBoolValue>("plugin:hyprbars:enabled", "Whether bars are enabled", false);
   g_pOmarchyFloatingGlobalState->config.iconOnHover =
       makeShared<Config::Values::CBoolValue>("plugin:hyprbars:icon_on_hover", "Whether to use an icon on hover of the buttons", false);
   g_pOmarchyFloatingGlobalState->config.onDoubleClick =

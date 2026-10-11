@@ -667,6 +667,17 @@ void COmarchyFloatingHyprBar::onConfigReloaded() {
   m_pTextTex = nullptr;
 
   g_pDecorationPositioner->repositionDeco(this);
+
+  // Bars start disabled, so the reload that enables them has to make room for
+  // them, as a change in m_hidden does.
+  const auto ENABLED = g_pOmarchyFloatingGlobalState->config.enabled->value();
+  if (m_bLastEnabledState != ENABLED) {
+    m_bLastEnabledState = ENABLED;
+    if (const auto PWINDOW = m_pWindow.lock(); PWINDOW)
+      if (const auto monitor = PWINDOW->m_monitor.lock())
+        monitor->m_scheduledRecalc = true;
+  }
+
   damageEntire();
 }
 
