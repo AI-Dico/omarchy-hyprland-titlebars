@@ -26,6 +26,7 @@
 #include "globals.hpp"
 #include "BarPassElement.hpp"
 #include <hyprland/src/managers/fullscreen/FullscreenController.hpp>
+#include "appName.hpp"
 
 #include <algorithm>
 #include <climits>
@@ -588,8 +589,13 @@ void COmarchyFloatingHyprBar::renderPass(PHLMONITOR pMonitor, const float &a) {
   g_pHyprOpenGL->renderRect(titleBarBox, color, {.round = static_cast<int>(scaledRounding), .roundingPower = PWINDOW->roundingPower()});
 
   // render title
-  if (ENABLETITLE && (m_szLastTitle != PWINDOW->m_title || m_bWindowSizeChanged || !m_pTextTex || m_pTextTex->m_texID == 0 || m_bTitleColorChanged)) {
-    m_szLastTitle = PWINDOW->m_title;
+  // The app's name is steadier than a window title, which for a web app is often
+  // just its domain or the page it is on. Windows no launcher claims keep theirs.
+  std::string title = omarchyAppName(PWINDOW->m_class);
+  if (title.empty())
+    title = PWINDOW->m_title;
+  if (ENABLETITLE && (m_szLastTitle != title || m_bWindowSizeChanged || !m_pTextTex || m_pTextTex->m_texID == 0 || m_bTitleColorChanged)) {
+    m_szLastTitle = title;
     renderBarTitle(BARBUF, pMonitor->m_scale);
   }
 
