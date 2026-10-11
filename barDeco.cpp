@@ -166,9 +166,9 @@ void COmarchyFloatingHyprBar::onTouchUp(Event::SCallbackInfo &info, ITouch::SUpE
 }
 
 void COmarchyFloatingHyprBar::onMouseMove(Vector2D coords) {
-  // ensure proper redraws of button icons on hover when using hardware cursors
-  if (g_pOmarchyFloatingGlobalState->config.iconOnHover->value())
-    damageOnButtonHover();
+  // Hovered buttons are highlighted, so redraw when the pointer moves between
+  // them, also with hardware cursors.
+  damageOnButtonHover();
 
   if (!m_bDragPending || m_bTouchEv || !validMapped(m_pWindow) || m_touchId != 0)
     return;
@@ -420,6 +420,13 @@ void COmarchyFloatingHyprBar::renderBarButtons(CBox *barBox, const float scale, 
       g_pHyprOpenGL->renderRect(face, color, {.round = std::max(0, rounding - borderSize)});
     } else
       g_pHyprOpenGL->renderRect(buttonBox, color, {.round = rounding});
+
+    // A hovered button lifts its face in its own icon color, which follows any theme.
+    if (m_iButtonHoverState & (1u << i)) {
+      auto hover = button.userfg ? button.fgcol : (button.bgcol.r + button.bgcol.g + button.bgcol.b < 1) ? CHyprColor(0xFFFFFFFF) : CHyprColor(0xFF000000);
+      hover.a = 0.18 * a;
+      g_pHyprOpenGL->renderRect(buttonBox, hover, {.round = rounding});
+    }
 
     offset += scaledButtonsPad + scaledButtonSize;
   }
@@ -732,17 +739,20 @@ void COmarchyFloatingHyprBar::damageOnButtonHover() {
 
   const auto COORDS = cursorRelativeToBar();
 
-  for (auto &b : g_pOmarchyFloatingGlobalState->buttons) {
+  unsigned int hoverState = 0;
+  for (size_t i = 0; i < g_pOmarchyFloatingGlobalState->buttons.size(); ++i) {
+    const auto &b = g_pOmarchyFloatingGlobalState->buttons[i];
     const auto BARBUF = Vector2D{(int)assignedBoxGlobal().w, HEIGHT};
     Vector2D currentPos = Vector2D{(BUTTONSRIGHT ? BARBUF.x - BARBUTTONPADDING - b.size - offset : offset), (BARBUF.y - b.size) / 2.0}.floor();
 
-    bool hover = VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + BARBUTTONPADDING, currentPos.y + b.size);
-
-    if (hover != m_bButtonHovered) {
-      m_bButtonHovered = hover;
-      damageEntire();
-    }
+    if (VECINRECT(COORDS, currentPos.x, currentPos.y, currentPos.x + b.size + BARBUTTONPADDING, currentPos.y + b.size))
+      hoverState |= 1u << i;
 
     offset += BARBUTTONPADDING + b.size;
+  }
+
+  if (hoverState != m_iButtonHoverState) {
+    m_iButtonHoverState = hoverState;
+    damageEntire();
   }
 }

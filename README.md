@@ -29,6 +29,10 @@ These are in addition to the upstream `plugin.hyprbars` titlebar settings.
 
 A titlebar shows the name of the app the window belongs to, when a desktop entry claims the window's class through `StartupWMClass` or its file name, and the window's own title otherwise. A web app titles its window with its page or just its domain, so this is what keeps `web.whatsapp.com` reading WhatsApp. Entries are read from `$XDG_DATA_HOME/applications` and then `$XDG_DATA_DIRS`, so a user's own entry wins, and an entry added while Hyprland runs is picked up within a couple of seconds.
 
+## Button hover
+
+A button under the pointer is highlighted in its own icon color at low opacity, so the effect follows any theme without a setting of its own.
+
 ## Window targeting with `%WINDOW%`
 
 Button `action` commands and `on_double_click` may contain `%WINDOW%`. Every occurrence is replaced synchronously with the clicked titlebar's window address, such as `0x1234abcd`, before the command is spawned. Use it to keep asynchronous actions targeted at the clicked window when focus changes before the command runs:

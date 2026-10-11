@@ -65,7 +65,6 @@ private:
   bool m_bWindowSizeChanged = false;
   bool m_hidden = false;
   bool m_bTitleColorChanged = false;
-  bool m_bButtonHovered = false;
   bool m_bLastEnabledState = false;
   bool m_bWindowHasFocus = false;
   std::optional<CHyprColor> m_bForcedBarColor;
