@@ -2,7 +2,7 @@
 
 A native Hyprland plugin that gives Omarchy's floating workspace mode its window titlebars. It draws theme-neutral titlebars on floating windows; dragging one moves the window, and a maximized window dragged by its titlebar comes back to its floating size under the pointer.
 
-Omarchy core has no build step, so the plugin ships as its own package, built here alongside Hyprland. Omarchy loads it from its Lua config only while a workspace floats, from a fixed path:
+Omarchy core has no build step, so the plugin ships as its own package, `omarchy-hyprland-titlebars`, which [omarchy-pkgs](https://github.com/omacom/omarchy-pkgs) builds from this repository's release tags. Omarchy loads it from its Lua config only while a workspace floats, from a fixed path:
 
 ```lua
 hl.plugin.load("/usr/lib/omarchy-hyprland-titlebars/titlebars.so")
@@ -48,30 +48,29 @@ The replacement contains only `0x` and hexadecimal digits; no window title or ot
 
 ## Hyprland ABI
 
-A Hyprland plugin is only compatible with the exact Hyprland build whose headers it was compiled against, and Hyprland refuses to load a mismatched build. `rebuild_on` in `.omarchy/package.json` rebuilds this package whenever `hyprland` changes. A new Hyprland version also needs the `hyprland=` dependency in `PKGBUILD` moved to it.
+A Hyprland plugin is only compatible with the exact Hyprland build whose headers it was compiled against, and Hyprland refuses to load a mismatched build. The package in omarchy-pkgs is rebuilt whenever `hyprland` changes, and a new Hyprland version also needs the `hyprland=` dependency in its `PKGBUILD` moved to it.
 
 Plugin-owned C++ symbols have an `OmarchyFloating` prefix and the library is built with `-fno-gnu-unique`, so it can be unloaded and reloaded cleanly alongside other hyprbars forks such as the Windows XP theme's. Do not use whole-library hidden visibility: Hyprland shares inline state through its headers.
 
 ## Layout
 
-The plugin source sits beside `PKGBUILD` as local sources, since makepkg finds those by file name. `tools/verify.py` is a nested-compositor verifier, with `pointer.c` and the wlr virtual pointer protocol it uses to drive real pointer input; it is not part of the build.
+The plugin source sits at the top level and builds with CMake. `tools/verify.py` is a nested-compositor verifier, with `pointer.c` and the wlr virtual pointer protocol it uses to drive real pointer input; it is not part of the build.
 
 ## Building
 
-```bash
-bin/repo release --package omarchy-hyprland-titlebars
-```
-
-Or locally, with the Hyprland headers from the `hyprland` package installed:
+With the Hyprland headers from the `hyprland` package installed:
 
 ```bash
-makepkg -f
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
 ```
+
+To release, tag the commit `vX.Y.Z` and push the tag. omarchy-pkgs builds the package from that tag's source tarball.
 
 ## Verifying
 
 ```bash
-python3 tools/verify.py src/build/titlebars.so
+python3 tools/verify.py build/titlebars.so
 ```
 
 The verifier needs a running Hyprland session with exactly one Hyprland instance, plus `foot`, `grim`, `wayland-scanner`, and a C compiler. It starts a disposable nested Hyprland with its own runtime directory and never loads the candidate library into the parent compositor. It checks repeated load/reload/unload, interleaved with the Windows XP fork when `/usr/lib/omarchy-windows-xp/hyprbars.so` is installed, then exercises real pointer titlebar dragging to the screen edges without snapping, double-click maximize, and restoring a maximized window by dragging its titlebar. A two-window regression check deliberately delays button and double-click commands and changes focus before they run, to verify that actions keep the clicked window as their target. A final check confirms that `workspace_tag`-scoped titlebars release their space immediately when a window is tiled or untagged.
