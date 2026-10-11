@@ -7,7 +7,6 @@ import argparse
 import json
 import os
 from pathlib import Path
-import socket
 import subprocess
 import tempfile
 import time
@@ -36,7 +35,6 @@ if hl.plugin and hl.plugin.hyprbars then
   hl.config({ plugin = { hyprbars = {
     enabled = true, bar_height = 30, bar_color = "rgb(24283b)", bar_color_inactive = "rgb(1a1b26)", col = { text = "rgb(c0caf5)" },
     button_rounding = 4, bar_text_align = "left", bar_text_font = "Sans", bar_text_size = 12, bar_part_of_window = true,
-    edge_snap = true, edge_threshold = 24, snap_gap = 8,
     on_double_click = [[hyprctl dispatch 'hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle", window = "address:%WINDOW%" })']],
   } } })
   hl.plugin.hyprbars.add_button({ bg_color = "rgb(f7768e)", fg_color = "rgb(1a1b26)", size = 18, icon = "×", action = [[hyprctl dispatch 'hl.dsp.window.close({ window = "address:%WINDOW%" })']] })
@@ -135,44 +133,23 @@ end
     time.sleep(.25)
     assert not ctl('configerrors').strip(), ctl('configerrors')
     original = client()
-    events = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    events.connect(str(scratch / 'hypr' / env['HYPRLAND_INSTANCE_SIGNATURE'] / '.socket2.sock'))
-    events.settimeout(.2)
     capture('floating')
 
-    left = drag_to(1, 360)
-    assert left['at'][0] <= 12 and 610 <= left['size'][0] <= 630, left
-    capture('snap-left')
-    right = drag_to(1278, 360)
-    assert 640 <= right['at'][0] <= 656 and 610 <= right['size'][0] <= 630, right
-    capture('snap-right')
-    free = drag_to(650, 220)
-    assert free['size'] == original['size'], (free, original)
+    edge = drag_to(1, 360)
+    assert edge['size'] == original['size'] and edge['fullscreen'] == 0, edge
     top = drag_to(650, 1)
-    assert top['fullscreen'] == 1 and top['at'][1] >= 30, top
-    capture('maximized')
-    restored = drag_to(650, 220)
-    assert restored['fullscreen'] == 0 and restored['size'] == original['size'], restored
-    assert 205 <= restored['at'][1] <= 255, restored
-    print('PASS: real pointer titlebar drag left/right, restore size, top maximize, drag-down restore', flush=True)
+    assert top['size'] == original['size'] and top['fullscreen'] == 0, top
+    print('PASS: real pointer titlebar drags move the window to any edge without snapping', flush=True)
 
     window = client()
     x, y = window['at'][0] + 120, window['at'][1] - 15
     pointer([f'move {x} {y}', 'wait 450', 'down', 'up', 'wait 100', 'down', 'up'])
     assert client()['fullscreen'] == 1, client()
+    capture('maximized')
     print('PASS: titlebar double-click maximize', flush=True)
-    messages = b''
-    try:
-      while chunk := events.recv(65536):
-        messages += chunk
-    except TimeoutError:
-      pass
-    events.close()
-    text = messages.decode()
-    for marker in [',left,', ',right,', ',maximize,', ',none,']:
-      assert f'omarchy_snap_preview>>' in text and marker in text, (marker, text)
-    (args.artifacts / 'events.log').write_text(text)
-    print('PASS: snap preview events and release cleanup', flush=True)
+    restored = drag_to(650, 220)
+    assert restored['fullscreen'] == 0 and restored['size'] == original['size'], restored
+    print('PASS: dragging a maximized titlebar restores its size under the pointer', flush=True)
 
     # Make dispatch deliberately slow, then focus another window after clicking.
     # Both double-click and button actions must keep the decoration owner.

@@ -25,7 +25,6 @@
 
 #include "globals.hpp"
 #include "BarPassElement.hpp"
-#include "edgeSnap.hpp"
 #include <hyprland/src/managers/fullscreen/FullscreenController.hpp>
 
 #include <algorithm>
@@ -295,8 +294,7 @@ void COmarchyFloatingHyprBar::handleMovement() {
   if (maximized)
     Fullscreen::controller()->setFullscreenMode(window, Fullscreen::FSMODE_NONE);
 
-  const bool restored = omarchyFloatingRestoreSnap(window);
-  if (maximized || restored) {
+  if (maximized) {
     auto box = window->layoutTarget()->position();
     const auto reserved = window->getFullWindowReservedArea();
     box.x = cursor.x - box.w * anchor;

@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 3.27)
 
 project(omarchy-hyprland-titlebars
-  DESCRIPTION "Titlebars and edge snapping for Omarchy's floating workspace mode"
+  DESCRIPTION "Titlebars for Omarchy's floating workspace mode"
   VERSION 0.1.0
   LANGUAGES CXX
 )
 
 set(CMAKE_CXX_STANDARD 23)
 
-set(SRC main.cpp barDeco.cpp BarPassElement.cpp edgeSnap.cpp)
+set(SRC main.cpp barDeco.cpp BarPassElement.cpp)
 
 # Built as titlebars.so (no lib prefix). Omarchy loads it from the fixed path
 # /usr/lib/omarchy-hyprland-titlebars/titlebars.so. The Hyprland-facing plugin

@@ -21,7 +21,6 @@
 
 #include "barDeco.hpp"
 #include "globals.hpp"
-#include "edgeSnap.hpp"
 
 extern "C" {
 #include <lua.h>
@@ -44,7 +43,6 @@ static void onNewWindow(PHLWINDOW window) {
 }
 
 static void onPreConfigReload() {
-  omarchyFloatingSnapReset();
   g_pOmarchyFloatingGlobalState->buttons.clear();
 }
 
@@ -251,13 +249,7 @@ static PLUGIN_DESCRIPTION_INFO initializeOmarchyFloating(HANDLE handle) {
   g_pOmarchyFloatingGlobalState->config.onDoubleClick =
       makeShared<Config::Values::CStringValue>("plugin:hyprbars:on_double_click", "Action to execute on double click of the bar", "");
   g_pOmarchyFloatingGlobalState->config.workspaceTag =
-      makeShared<Config::Values::CStringValue>("plugin:hyprbars:workspace_tag", "Restrict bars and snapping to floating windows with this tag", "");
-  g_pOmarchyFloatingGlobalState->config.edgeSnap =
-      makeShared<Config::Values::CBoolValue>("plugin:hyprbars:edge_snap", "Snap dragged floating windows at monitor edges", false);
-  g_pOmarchyFloatingGlobalState->config.edgeThreshold =
-      makeShared<Config::Values::CIntValue>("plugin:hyprbars:edge_threshold", "Edge activation distance in logical pixels", 24);
-  g_pOmarchyFloatingGlobalState->config.snapGap =
-      makeShared<Config::Values::CIntValue>("plugin:hyprbars:snap_gap", "Outer and center spacing in logical pixels", 8);
+      makeShared<Config::Values::CStringValue>("plugin:hyprbars:workspace_tag", "Restrict bars to windows with this tag", "");
 
   HyprlandAPI::addConfigValueV2(OMARCHY_FLOATING_PHANDLE, g_pOmarchyFloatingGlobalState->config.barColor);
   HyprlandAPI::addConfigValueV2(OMARCHY_FLOATING_PHANDLE, g_pOmarchyFloatingGlobalState->config.textColor);
@@ -282,11 +274,6 @@ static PLUGIN_DESCRIPTION_INFO initializeOmarchyFloating(HANDLE handle) {
   HyprlandAPI::addConfigValueV2(OMARCHY_FLOATING_PHANDLE, g_pOmarchyFloatingGlobalState->config.workspaceTag);
   HyprlandAPI::addConfigValueV2(OMARCHY_FLOATING_PHANDLE, g_pOmarchyFloatingGlobalState->config.iconOnHover);
   HyprlandAPI::addConfigValueV2(OMARCHY_FLOATING_PHANDLE, g_pOmarchyFloatingGlobalState->config.onDoubleClick);
-  HyprlandAPI::addConfigValueV2(OMARCHY_FLOATING_PHANDLE, g_pOmarchyFloatingGlobalState->config.edgeSnap);
-  HyprlandAPI::addConfigValueV2(OMARCHY_FLOATING_PHANDLE, g_pOmarchyFloatingGlobalState->config.edgeThreshold);
-  HyprlandAPI::addConfigValueV2(OMARCHY_FLOATING_PHANDLE, g_pOmarchyFloatingGlobalState->config.snapGap);
-
-  omarchyFloatingSnapInit();
 
   if (Config::mgr()->type() == Config::CONFIG_LEGACY)
     HyprlandAPI::addConfigKeyword(OMARCHY_FLOATING_PHANDLE, "plugin:hyprbars:hyprbars-button", onNewOmarchyFloatingButton, Hyprlang::SHandlerOptions{});
@@ -309,7 +296,6 @@ static PLUGIN_DESCRIPTION_INFO initializeOmarchyFloating(HANDLE handle) {
 }
 
 static void exitOmarchyFloating() {
-  omarchyFloatingSnapExit();
   for (auto &m : State::monitorState()->monitors())
     m->m_scheduledRecalc = true;
 
